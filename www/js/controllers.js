@@ -41,16 +41,55 @@ angular.module('starter.controllers', [])
   };
 })
 
-.controller('PlaylistsCtrl', function($scope) {
-  $scope.playlists = [
-    { title: 'Reggae', id: 1 },
-    { title: 'Chill', id: 2 },
-    { title: 'Dubstep', id: 3 },
-    { title: 'Indie', id: 4 },
-    { title: 'Rap', id: 5 },
-    { title: 'Cowbell', id: 6 }
-  ];
-})
+.controller('MyStocksCtrl', ['$scope',
+  function($scope) {
+    $scope.myStocksArray = [
+      {ticker: "AAPL"},
+      {ticker: "GPRO"},
+      {ticker: "FB"},
+      {ticker: "NFLX"},
+      {ticker: "TSLA"},
+      {ticker: "BRK-A"},
+      {ticker: "INTC"},
+      {ticker: "MSFT"},
+      {ticker: "GE"},
+      {ticker: "BAC"},
+      {ticker: "C"},
+      {ticker: "T"}
+    ];
+}])
 
-.controller('PlaylistCtrl', function($scope, $stateParams) {
-});
+.controller('StockCtrl', ['$scope', '$stateParams', 'stockDataService', 'dateService',
+  function($scope, $stateParams, stockDataService, dateService){
+
+    $scope.ticker = $stateParams.stockTicker;
+    $scope.chartView = 1;
+
+    console.log(dateService.currentDate());
+    console.log(dateService.oneYearAgoDate());
+
+    $scope.$on("$ionicView.afterEnter", function(){
+      getPriceData();
+      getDetailsData();
+    });
+
+    $scope.chartViewFunc = function(n){
+      $scope.chartView = n;
+    };
+
+    function getPriceData(){
+      var promise = stockDataService.getPriceData($scope.ticker);
+      promise.then(function(data){
+        console.log(data);
+        $scope.stockPriceData = data;
+      });
+    }
+
+    function getDetailsData(){
+      var promise = stockDataService.getDetailsData($scope.ticker);
+      promise.then(function(data){
+        console.log(data);
+        $scope.stockDetailsData = data;
+      });
+    }
+}]);
