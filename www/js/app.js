@@ -6,6 +6,7 @@
 // 'starter.controllers' is found in controllers.js
 angular.module('starter', [
   'ionic',
+  'angular-cache',
   'nvd3',
   'nvChart',
   'starter.controllers',
