@@ -9,6 +9,7 @@ angular.module('starter', [
   'angular-cache',
   'nvd3',
   'nvChart',
+  'cb.x2js',
   'starter.controllers',
   'starter.services',
   'starter.filters',

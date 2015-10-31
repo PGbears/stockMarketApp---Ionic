@@ -62,6 +62,42 @@ angular.module('starter.services', [])
   return stockDetailsCache;
 })
 
+.factory('notesCacheService', function(CacheFactory){
+
+  var notesCache;
+
+  if(!CacheFactory.get('notesCache')){
+    notesCache = CacheFactory('notesCache', {
+      storageMode: 'localStorage'
+    });
+  }else{
+    notesCache = CacheFactory.get('notesCache');
+  }
+
+  return notesCache;
+})
+
+.factory('fillMyStocksCacheService', function(CacheFactory){
+
+  
+})
+
+.factory('followStockService', function(){
+
+  return{
+
+    follow: function(ticker){
+
+    },
+    unfollow: function(ticker){
+
+    },
+    checkFollowing: function(){
+
+    }
+  };
+})
+
 .factory('stockDataService', function($q, $http, encodeURIService, stockDetailsCacheService){
 
   var getDetailsData = function(ticker){
@@ -181,4 +217,60 @@ angular.module('starter.services', [])
     getHistoricalData: getHistoricalData
   };
 
+})
+
+.factory('notesService', function(notesCacheService){
+
+  return{
+    getNotes: function(ticker){
+      return notesCacheService.get(ticker);
+    },
+    addNote: function(ticker, note){
+
+      var stockNotes = [];
+
+      if(notesCacheService.get(ticker)){
+        stockNotes = notesCacheService.get(ticker);
+        stockNotes.push(note);
+      }else{
+        stockNotes.push(note);
+      }
+
+      notesCacheService.put(ticker, stockNotes);
+    },
+    deleteNote: function(ticker, index){
+      var stockNotes = [];
+
+      stockNotes = notesCacheService.get(ticker);
+      stockNotes.splice(index, 1);
+      notesCacheService.put(ticker, stockNotes);
+    }
+  };
+})
+
+.factory('newsService', function($q, $http){
+
+  return{
+    getNews: function(ticker){
+
+      var deferred = $q.defer(),
+          x2js = new X2JS(),
+          url = "http://finance.yahoo.com/rss/headline?s=" + ticker;
+
+      $http.get(url)
+        .success(function(xml){
+          var xmlDoc = x2js.parseXmlString(xml),
+              json = x2js.xml2json(xmlDoc),
+              jsonData = json.rss.channel.item;
+
+              deferred.resolve(jsonData);
+        })
+        .error(function(error){
+          deferred.reject();
+          console.log("News error: " + error);
+        });
+
+        return deferred.promise;
+    }
+  };
 });
