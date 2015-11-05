@@ -1,5 +1,7 @@
 angular.module('starter.services', [])
 
+.constant('FIREBASE_URL', 'https://stockmarket-pre.firebaseio.com/')
+
 .factory('encodeURIService', function(){
   return{
     encode: function(string){
@@ -25,15 +27,19 @@ angular.module('starter.services', [])
       });
     }else if(id == 2){
       $ionicModal.fromTemplateUrl('templates/login.html', {
-        scope: $scope
+        scope: null,
+        controller: 'LoginSignupCtrl'
       }).then(function(modal) {
-        $scope.modal = modal;
+        _this.modal = modal;
+        _this.modal.show();
       });
     }else if(id == 3){
-      $ionicModal.fromTemplateUrl('templates/login.html', {
-        scope: $scope
+      $ionicModal.fromTemplateUrl('templates/signup.html', {
+        scope: null,
+        controller: 'LoginSignupCtrl'
       }).then(function(modal) {
-        $scope.modal = modal;
+        _this.modal = modal;
+        _this.modal.show();
       });
     }
   };
@@ -64,6 +70,80 @@ angular.module('starter.services', [])
   return{
     currentDate: currentDate,
     oneYearAgoDate: oneYearAgoDate
+  };
+})
+
+.factory('firebaseRef', function($firebase, FIREBASE_URL){
+
+  var firebaseRef = new Firebase(FIREBASE_URL);
+
+  return firebaseRef;
+})
+
+.factory('firebaseUserRef', function(firebaseRef){
+
+  var userRef = firebaseRef.child('users');
+
+  return userRef;
+})
+
+.factory('userService', function($rootScope, firebaseRef, firebaseUserRef, myStocksArrayService, modalService){
+
+  var login = function(user){
+
+    firebaseRef.authWithPassword({
+      email    : user.email,
+      password : user.password
+    }, function(error, authData) {
+      if (error) {
+        console.log("Login Failed!", error);
+      } else {
+        $rootScope.currentUser = user;
+        modalService.closeModal();
+        console.log("Authenticated successfully with payload:", authData);
+      }
+    });
+  };
+
+  var signup = function(user){
+
+    firebaseRef.createUser({
+      email    : user.email,
+      password : user.password
+    }, function(error, userData) {
+      if (error) {
+        console.log("Error creating user:", error);
+      } else {
+        login(user);
+        firebaseRef.child('emails').push(user.email);
+        firebaseUserRef.child(userData.uid).child('stocks').set(myStocksArrayService);
+      }
+    });
+  };
+
+  var logout = function(){
+    firebaseRef.unauth();
+    $rootScope.currentUser = '';
+  };
+
+  var updateStocks = function(stocks){
+    firebaseUserRef.child(getUser().uid).child('stocks').set(stocks);
+  };
+
+  var getUser = function(){
+    return firebaseRef.getAuth();
+  };
+
+  if(getUser()){
+    $rootScope.currentUser = getUser();
+  }
+
+  return{
+    login: login,
+    signup: signup,
+    logout: logout,
+    updateStocks: updateStocks,
+    getUser: getUser
   };
 })
 
@@ -188,7 +268,7 @@ angular.module('starter.services', [])
   return myStocks;
 })
 
-.factory('followStockService', function(myStocksArrayService, myStocksCacheService){
+.factory('followStockService', function(myStocksArrayService, myStocksCacheService, userService){
 
   return{
 
@@ -200,6 +280,10 @@ angular.module('starter.services', [])
 
       myStocksArrayService.push(stockToAdd);
       myStocksCacheService.put('myStocks', myStocksArrayService);
+
+      if(userService.getUser()){
+        userService.updateStocks(myStocksArrayService);
+      }
     },
 
     unfollow: function(ticker){
@@ -209,6 +293,10 @@ angular.module('starter.services', [])
           myStocksArrayService.splice(i, 1);
           myStocksCacheService.remove('myStocks');
           myStocksCacheService.put('myStocks', myStocksArrayService);
+
+          if(userService.getUser()){
+            userService.updateStocks(myStocksArrayService);
+          }
 
           break;
         }
